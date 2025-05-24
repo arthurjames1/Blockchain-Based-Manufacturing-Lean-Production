@@ -1,30 +1,148 @@
+;; Performance Measurement Contract
+;; Tracks efficiency gains and KPIs
 
-;; title: performance-measurement
-;; version:
-;; summary:
-;; description:
+(define-map performance-metrics
+  { metric-id: uint }
+  {
+    facility-id: uint,
+    metric-name: (string-ascii 50),
+    metric-type: (string-ascii 30),
+    value: uint,
+    unit: (string-ascii 20),
+    timestamp: uint,
+    period: (string-ascii 20),
+    target: uint,
+    recorder: principal
+  }
+)
 
-;; traits
-;;
+(define-map kpi-definitions
+  { kpi-name: (string-ascii 50) }
+  {
+    description: (string-ascii 200),
+    calculation-method: (string-ascii 100),
+    target-range-min: uint,
+    target-range-max: uint,
+    frequency: (string-ascii 20)
+  }
+)
 
-;; token definitions
-;;
+(define-map facility-performance
+  { facility-id: uint, period: (string-ascii 20) }
+  {
+    overall-efficiency: uint,
+    waste-reduction: uint,
+    cost-savings: uint,
+    quality-score: uint,
+    last-updated: uint
+  }
+)
 
-;; constants
-;;
+(define-data-var next-metric-id uint u1)
 
-;; data vars
-;;
+(define-constant ERR-INVALID-METRIC (err u400))
+(define-constant ERR-METRIC-NOT-FOUND (err u401))
+(define-constant ERR-UNAUTHORIZED-RECORD (err u402))
 
-;; data maps
-;;
+(define-public (record-performance-metric
+  (facility-id uint)
+  (metric-name (string-ascii 50))
+  (metric-type (string-ascii 30))
+  (value uint)
+  (unit (string-ascii 20))
+  (period (string-ascii 20))
+  (target uint)
+)
+  (let ((metric-id (var-get next-metric-id)))
+    (map-set performance-metrics
+      { metric-id: metric-id }
+      {
+        facility-id: facility-id,
+        metric-name: metric-name,
+        metric-type: metric-type,
+        value: value,
+        unit: unit,
+        timestamp: block-height,
+        period: period,
+        target: target,
+        recorder: tx-sender
+      }
+    )
+    (var-set next-metric-id (+ metric-id u1))
+    (ok metric-id)
+  )
+)
 
-;; public functions
-;;
+(define-public (define-kpi
+  (kpi-name (string-ascii 50))
+  (description (string-ascii 200))
+  (calculation-method (string-ascii 100))
+  (target-min uint)
+  (target-max uint)
+  (frequency (string-ascii 20))
+)
+  (begin
+    (map-set kpi-definitions
+      { kpi-name: kpi-name }
+      {
+        description: description,
+        calculation-method: calculation-method,
+        target-range-min: target-min,
+        target-range-max: target-max,
+        frequency: frequency
+      }
+    )
+    (ok true)
+  )
+)
 
-;; read only functions
-;;
+(define-public (update-facility-performance
+  (facility-id uint)
+  (period (string-ascii 20))
+  (efficiency uint)
+  (waste-reduction uint)
+  (cost-savings uint)
+  (quality-score uint)
+)
+  (begin
+    (map-set facility-performance
+      { facility-id: facility-id, period: period }
+      {
+        overall-efficiency: efficiency,
+        waste-reduction: waste-reduction,
+        cost-savings: cost-savings,
+        quality-score: quality-score,
+        last-updated: block-height
+      }
+    )
+    (ok true)
+  )
+)
 
-;; private functions
-;;
+(define-read-only (get-performance-metric (metric-id uint))
+  (map-get? performance-metrics { metric-id: metric-id })
+)
 
+(define-read-only (get-kpi-definition (kpi-name (string-ascii 50)))
+  (map-get? kpi-definitions { kpi-name: kpi-name })
+)
+
+(define-read-only (get-facility-performance (facility-id uint) (period (string-ascii 20)))
+  (map-get? facility-performance { facility-id: facility-id, period: period })
+)
+
+(define-read-only (calculate-efficiency-trend (facility-id uint))
+  ;; Simplified calculation - in practice would compare multiple periods
+  (match (map-get? facility-performance { facility-id: facility-id, period: "current" })
+    current-perf (ok (get overall-efficiency current-perf))
+    (ok u0)
+  )
+)
+
+(define-read-only (is-target-met (metric-id uint))
+  (match (map-get? performance-metrics { metric-id: metric-id })
+    metric-data
+    (>= (get value metric-data) (get target metric-data))
+    false
+  )
+)

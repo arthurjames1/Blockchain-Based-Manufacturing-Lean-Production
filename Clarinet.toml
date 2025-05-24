@@ -1,0 +1,29 @@
+[project]
+name = 'Blockchain-Based-Manufacturing-Lean-Production'
+description = ''
+authors = []
+telemetry = true
+cache_dir = './.cache'
+requirements = []
+[contracts.best-practice-sharing]
+path = 'contracts/best-practice-sharing.clar'
+clarity_version = 2
+epoch = 2.5
+
+[contracts.facility-verification]
+path = 'contracts/facility-verification.clar'
+clarity_version = 2
+epoch = 2.5
+
+[contracts.performance-measurement]
+path = 'contracts/performance-measurement.clar'
+clarity_version = 2
+epoch = 2.5
+[repl.analysis]
+passes = ['check_checker']
+
+[repl.analysis.check_checker]
+strict = false
+trusted_sender = false
+trusted_caller = false
+callee_filter = false
